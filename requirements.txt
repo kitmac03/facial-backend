@@ -1,4 +1,5 @@
 fastapi
 uvicorn
 python-multipart
-tensorflow==2.13.0numpy
+tensorflow==2.13.0
+numpy
