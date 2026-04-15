@@ -45,7 +45,7 @@ print("Loading models...")
 
 try:
     model_mobilenet = keras.models.load_model(
-        'models/final_mobilenetv2.h5',
+        'models/final_mobilenetv2.keras',
         custom_objects={'label_smoothing_loss': label_smoothing_loss},
         compile=False
     )
@@ -56,7 +56,7 @@ except Exception as e:
 
 try:
     model_hybrid = keras.models.load_model(
-        'models/final_hybrid_model.h5',
+        'models/final_hybrid_model.keras',
         custom_objects={
             'label_smoothing_loss': label_smoothing_loss,
             'Dense': CompatibleDense
