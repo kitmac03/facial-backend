@@ -41,7 +41,10 @@ def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
 # ============================================
 # LOAD MODELS (Baseline + Hybrid only)
 # ============================================
+import tensorflow as tf
+tf.keras.backend.clear_session()
 print("Loading models...")
+
 
 try:
     model_mobilenet = keras.models.load_model(
