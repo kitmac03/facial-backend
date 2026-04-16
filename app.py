@@ -252,5 +252,5 @@ async def analyze_skin(image: UploadFile = File(...)):
 # RUN SERVER
 # ============================================
 if __name__ == "__main__":
-   port = int(os.environ.get("PORT", 10000))
-app.run(host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
