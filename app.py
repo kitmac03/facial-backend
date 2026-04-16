@@ -1,8 +1,11 @@
+import os
+
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import tensorflow as tf
-from tensorflow import keras
+from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+from tensorflow.keras import layers
 import numpy as np
 from PIL import Image
 import io
@@ -41,31 +44,35 @@ def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
 # ============================================
 # LOAD MODELS (Baseline + Hybrid only)
 # ============================================
-import tensorflow as tf
-tf.keras.backend.clear_session()
 print("Loading models...")
 
 
 try:
-    model_mobilenet = keras.models.load_model(
-        'models/mobilenetv2_model.keras',
-        custom_objects={'label_smoothing_loss': label_smoothing_loss},
-        compile=False
-    )
+    model_mobilenet = load_model(
+    'models/mobilenetv2_model.keras',
+    custom_objects={
+        'label_smoothing_loss': label_smoothing_loss,
+        'Dense': CompatibleDense
+    },
+    compile=False,
+    safe_mode=False   # 🔥 IMPORTANT
+)
     print("✅ MobileNetV2 loaded")
 except Exception as e:
     print(f"❌ Error loading MobileNetV2: {str(e)[:100]}")
     model_mobilenet = None
 
 try:
-    model_hybrid = keras.models.load_model(
-        'models/hybrid_model3.keras',
-        custom_objects={
-            'label_smoothing_loss': label_smoothing_loss,
-            'Dense': CompatibleDense
-        },
-        compile=False
-    )
+    model_hybrid = load_model(
+    'models/hybrid_model3.keras',
+    custom_objects={
+        'label_smoothing_loss': label_smoothing_loss,
+        'Dense': CompatibleDense
+    },
+    compile=False,
+    safe_mode=False   # 🔥 IMPORTANT
+)
+    
     print("✅ Hybrid Model loaded")
 except Exception as e:
     print(f"❌ Error loading Hybrid Model: {str(e)}")
@@ -262,4 +269,5 @@ async def analyze_skin(image: UploadFile = File(...)):
 # RUN SERVER
 # ============================================
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
