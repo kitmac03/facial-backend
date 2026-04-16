@@ -46,36 +46,35 @@ def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
 # ============================================
 print("Loading models...")
 
-
 try:
     model_mobilenet = load_model(
-    'models/mobilenetv2_model.keras',
-    custom_objects={
-        'label_smoothing_loss': label_smoothing_loss,
-        'Dense': CompatibleDense
-    },
-    compile=False,
-    safe_mode=False   # 🔥 IMPORTANT
-)
+        'models/mobilenetv2_model.keras',
+        custom_objects={
+            'label_smoothing_loss': label_smoothing_loss,
+            'Dense': CompatibleDense
+        },
+        compile=False,
+        safe_mode=False   # 🔥 critical fix
+    )
     print("✅ MobileNetV2 loaded")
 except Exception as e:
-    print(f"❌ Error loading MobileNetV2: {str(e)[:100]}")
+    print(f"❌ Error loading MobileNetV2: {e}")
     model_mobilenet = None
+
 
 try:
     model_hybrid = load_model(
-    'models/hybrid_model3.keras',
-    custom_objects={
-        'label_smoothing_loss': label_smoothing_loss,
-        'Dense': CompatibleDense
-    },
-    compile=False,
-    safe_mode=False   # 🔥 IMPORTANT
-)
-    
+        'models/hybrid_model3.keras',
+        custom_objects={
+            'label_smoothing_loss': label_smoothing_loss,
+            'Dense': CompatibleDense
+        },
+        compile=False,
+        safe_mode=False   # 🔥 critical fix
+    )
     print("✅ Hybrid Model loaded")
 except Exception as e:
-    print(f"❌ Error loading Hybrid Model: {str(e)}")
+    print(f"❌ Error loading Hybrid Model: {e}")
     model_hybrid = None
 
 # ============================================
