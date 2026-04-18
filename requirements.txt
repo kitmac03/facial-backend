@@ -4,3 +4,4 @@ python-multipart
 tensorflow-cpu==2.15.0
 pillow
 numpy
+gdown
