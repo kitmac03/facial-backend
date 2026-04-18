@@ -1,8 +1,7 @@
 fastapi
 uvicorn[standard]
 python-multipart
-keras==3.0.5
-tensorflow-cpu==2.15.0
+tensorflow-cpu==2.16.0
 pillow
 numpy
 gdown

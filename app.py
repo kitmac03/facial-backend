@@ -13,7 +13,7 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 import tensorflow as tf
-import tf_keras as keras
+import keras
 from keras.applications.mobilenet_v2 import preprocess_input
 warnings.filterwarnings('ignore')
 
