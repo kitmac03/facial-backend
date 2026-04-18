@@ -1,4 +1,5 @@
 import os
+import gdown
 import io
 import warnings
 import traceback
@@ -33,6 +34,22 @@ def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
     y_true_smooth = y_true * (1 - smoothing) + (smoothing / num_classes)
     return keras.losses.categorical_crossentropy(y_true_smooth, y_pred)
 
+# ============================================
+# DOWNLOAD MODEL FROM GOOGLE DRIVE
+# ============================================
+def download_model():
+    os.makedirs('models', exist_ok=True)
+    model_path = 'models/mobilenetv2_model.keras'
+
+    if not os.path.exists(model_path):
+        print("⬇️ Downloading model from Google Drive...")
+        file_id = "YOUR_GOOGLE_DRIVE_FILE_ID"   # 👈 replace this
+        gdown.download(f"https://drive.google.com/drive/folders/1YXrFzrB_ZRM2O1MWNxeOmlZs0ePpxujQ", model_path, quiet=False)
+        print("✅ Model downloaded!")
+    else:
+        print("✅ Model file already exists, skipping download")
+
+download_model()  # 👈 runs before model is loaded
 # ============================================
 # LOAD MODELS
 # ============================================
