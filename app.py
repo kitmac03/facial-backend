@@ -29,27 +29,48 @@ app.add_middleware(
 )
 
 # ============================================
-# DOWNLOAD MODEL
+# DOWNLOAD MODELS
 # ============================================
-def download_model():
+def download_models():
     os.makedirs('models', exist_ok=True)
-    model_path = 'models/mobilenetv2_model.keras'
 
-    if not os.path.exists(model_path):
-        print("⬇️ Downloading model from Google Drive...")
-        file_id = "YOUR_GOOGLE_DRIVE_FILE_ID"  # 👈 replace this
+    # MobileNetV2
+    mobilenet_path = 'models/mobilenetv2_model.keras'
+    if not os.path.exists(mobilenet_path):
+        print("⬇️ Downloading MobileNetV2 from Google Drive...")
+        file_id = "1rgmuCWdidoGgbBXHnO7JnzM2Se0xb5Wr"
         gdown.download(
-            f"https://drive.google.com/drive/folders/1YXrFzrB_ZRM2O1MWNxeOmlZs0ePpxujQ?usp=sharing",
-            model_path,
-            quiet=False,
-            fuzzy=True
+            f"https://drive.google.com/uc?id={file_id}",
+            mobilenet_path,
+            quiet=False
         )
-        size = os.path.getsize(model_path)
-        print(f"✅ Downloaded! Size: {size / 1024 / 1024:.1f} MB")
+        if os.path.exists(mobilenet_path):
+            size = os.path.getsize(mobilenet_path)
+            print(f"✅ MobileNetV2 downloaded! Size: {size / 1024 / 1024:.1f} MB")
+        else:
+            print("❌ MobileNetV2 download failed!")
     else:
-        print("✅ Model already exists")
+        print("✅ MobileNetV2 already exists")
 
-download_model()
+    # Hybrid Model
+    hybrid_path = 'models/hybrid_model.keras'
+    if not os.path.exists(hybrid_path):
+        print("⬇️ Downloading Hybrid model from Google Drive...")
+        file_id = "16XUzw8kJNbH1ZbegUdRnhBmQu7QZpnM0"
+        gdown.download(
+            f"https://drive.google.com/uc?id={file_id}",
+            hybrid_path,
+            quiet=False
+        )
+        if os.path.exists(hybrid_path):
+            size = os.path.getsize(hybrid_path)
+            print(f"✅ Hybrid model downloaded! Size: {size / 1024 / 1024:.1f} MB")
+        else:
+            print("❌ Hybrid model download failed!")
+    else:
+        print("✅ Hybrid model already exists")
+
+download_models()
 
 # ============================================
 # CUSTOM LOSS FUNCTION
@@ -60,10 +81,11 @@ def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
     return keras.losses.categorical_crossentropy(y_true_smooth, y_pred)
 
 # ============================================
-# LOAD MODEL
+# LOAD MODELS
 # ============================================
-print("Loading model...")
+print("Loading models...")
 model_mobilenet = None
+model_hybrid = None
 
 try:
     model_mobilenet = keras.models.load_model(
@@ -75,7 +97,15 @@ try:
 except Exception as e:
     print(f"❌ Error loading MobileNetV2: {str(e)[:200]}")
 
-print("⚠️ Hybrid model disabled to save memory")
+try:
+    model_hybrid = keras.models.load_model(
+        'models/hybrid_model.keras',
+        custom_objects={'label_smoothing_loss': label_smoothing_loss},
+        compile=False
+    )
+    print("✅ Hybrid model loaded")
+except Exception as e:
+    print(f"❌ Error loading Hybrid model: {str(e)[:200]}")
 
 # ============================================
 # CLASS LABELS
@@ -233,6 +263,17 @@ async def analyze_skin(image: UploadFile = File(...)):
             if mobilenet_result:
                 results.append(mobilenet_result)
 
+        if model_hybrid:
+            hybrid_result = get_model_predictions(
+                model_hybrid, img_array, 'Hybrid Model', 'Proposed Model'
+            )
+            if hybrid_result:
+                # Non-skin validation
+                top_confidence = hybrid_result['predictions'][0]['confidence']
+                if top_confidence < NON_SKIN_THRESHOLD:
+                    return {"error": "No face detected. Please upload a clear facial skin image."}
+                results.append(hybrid_result)
+
         if not results:
             return {"error": "All models failed to produce results"}
 
@@ -246,5 +287,5 @@ async def analyze_skin(image: UploadFile = File(...)):
 # RUN SERVER (local dev only)
 # ============================================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 7860))
     uvicorn.run(app, host="0.0.0.0", port=port)
