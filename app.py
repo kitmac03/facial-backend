@@ -1,4 +1,6 @@
 import os
+os.environ["KERAS_BACKEND"] = "tensorflow"  # 👈 must be FIRST before any other import
+
 import gdown
 import io
 import warnings
@@ -12,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import tensorflow as tf
 import tf_keras as keras
-from tf_keras.applications.mobilenet_v2 import preprocess_input
+from keras.applications.mobilenet_v2 import preprocess_input
 warnings.filterwarnings('ignore')
 
 app = FastAPI()
@@ -58,10 +60,10 @@ model_hybrid = None
 
 try:
     model_mobilenet = keras.models.load_model(
-        'models/mobilenetv2_model.keras',
-        custom_objects={'label_smoothing_loss': label_smoothing_loss},
-        compile=False
-    )
+    'models/mobilenetv2_model.keras',
+    custom_objects={'label_smoothing_loss': label_smoothing_loss},
+    compile=False
+)
     print("✅ MobileNetV2 loaded")
 except Exception as e:
     print(f"❌ Error loading MobileNetV2: {str(e)[:200]}")
