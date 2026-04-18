@@ -1,17 +1,17 @@
 import os
-
-from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-from tensorflow.keras import layers
-import numpy as np
-from PIL import Image
 import io
-import uvicorn
 import warnings
 import traceback
+
+import numpy as np
+from PIL import Image
+import uvicorn
+from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 
 warnings.filterwarnings('ignore')
 
@@ -26,15 +26,7 @@ app.add_middleware(
 )
 
 # ============================================
-# CUSTOM DENSE LAYER (fixes quantization_config error)
-# ============================================
-class CompatibleDense(keras.layers.Dense):
-    def __init__(self, *args, **kwargs):
-        kwargs.pop('quantization_config', None)
-        super().__init__(*args, **kwargs)
-
-# ============================================
-# CUSTOM LOSS FUNCTION FOR HYBRID MODEL
+# CUSTOM LOSS FUNCTION
 # ============================================
 def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
     num_classes = tf.cast(tf.shape(y_true)[-1], tf.float32)
@@ -42,9 +34,12 @@ def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
     return keras.losses.categorical_crossentropy(y_true_smooth, y_pred)
 
 # ============================================
-# LOAD MODELS (Baseline + Hybrid only)
+# LOAD MODELS
 # ============================================
 print("Loading models...")
+
+model_mobilenet = None
+model_hybrid = None
 
 try:
     model_mobilenet = keras.models.load_model(
@@ -54,11 +49,8 @@ try:
     )
     print("✅ MobileNetV2 loaded")
 except Exception as e:
-    print(f"❌ Error loading MobileNetV2: {str(e)[:100]}")
-    model_mobilenet = None
+    print(f"❌ Error loading MobileNetV2: {str(e)[:200]}")
 
-# ❌ Disable this part
-model_hybrid = None
 print("⚠️ Hybrid model disabled to save memory")
 
 # ============================================
@@ -88,46 +80,6 @@ def preprocess_image(image_bytes):
         return img_array
     except Exception as e:
         print(f"[PREPROCESS ERROR] {e}")
-        traceback.print_exc()
-        return None
-
-# ============================================
-# GET MODEL PREDICTIONS
-# ============================================
-def get_model_predictions(model, image_array, model_name, model_type):
-    if model is None:
-        return None
-
-    try:
-        predictions = model.predict(image_array, verbose=0)
-        confidences = predictions[0] * 100
-
-        conditions = []
-        for i, class_name in enumerate(CLASS_LABELS):
-            conditions.append({
-                'name': class_name,
-                'confidence': float(confidences[i]),
-                'description': get_condition_description(class_name),
-                'recommendations': get_recommendations(class_name)
-            })
-
-        conditions.sort(key=lambda x: x['confidence'], reverse=True)
-
-        metrics = {
-            'accuracy': 0.95,
-            'precision': 0.93,
-            'f1Score': 0.94
-        }
-
-        return {
-            'modelName': model_name,
-            'modelType': model_type,
-            'metrics': metrics,
-            'predictions': conditions
-        }
-
-    except Exception as e:
-        print(f"[{model_name}] Prediction error: {e}")
         traceback.print_exc()
         return None
 
@@ -184,6 +136,46 @@ def get_recommendations(condition_name):
     return recommendations.get(condition_name, ['Consult a dermatologist'])
 
 # ============================================
+# GET MODEL PREDICTIONS
+# ============================================
+def get_model_predictions(model, image_array, model_name, model_type):
+    if model is None:
+        return None
+
+    try:
+        predictions = model.predict(image_array, verbose=0)
+        confidences = predictions[0] * 100
+
+        conditions = []
+        for i, class_name in enumerate(CLASS_LABELS):
+            conditions.append({
+                'name': class_name,
+                'confidence': float(confidences[i]),
+                'description': get_condition_description(class_name),
+                'recommendations': get_recommendations(class_name)
+            })
+
+        conditions.sort(key=lambda x: x['confidence'], reverse=True)
+
+        metrics = {
+            'accuracy': 0.95,
+            'precision': 0.93,
+            'f1Score': 0.94
+        }
+
+        return {
+            'modelName': model_name,
+            'modelType': model_type,
+            'metrics': metrics,
+            'predictions': conditions
+        }
+
+    except Exception as e:
+        print(f"[{model_name}] Prediction error: {e}")
+        traceback.print_exc()
+        return None
+
+# ============================================
 # HEALTH ENDPOINT
 # ============================================
 @app.get("/health")
@@ -209,7 +201,6 @@ async def analyze_skin(image: UploadFile = File(...)):
             return {"error": "Failed to process image"}
 
         results = []
-        hybrid_result = None
 
         if model_mobilenet:
             mobilenet_result = get_model_predictions(
@@ -218,29 +209,8 @@ async def analyze_skin(image: UploadFile = File(...)):
             if mobilenet_result:
                 results.append(mobilenet_result)
 
-        if model_hybrid:
-            hybrid_result = get_model_predictions(
-                model_hybrid, img_array, 'Hybrid Model', 'Proposed Model'
-            )
-            if hybrid_result:
-                results.append(hybrid_result)
-
         if not results:
             return {"error": "All models failed to produce results"}
-
-        # ============================================
-        # NON-SKIN VALIDATION USING HYBRID MODEL
-        # ============================================
-        if hybrid_result:
-            top_prediction = hybrid_result['predictions'][0]
-            top_confidence = top_prediction['confidence']
-
-            print(f"[VALIDATION] Top: {top_prediction['name']} ({top_confidence:.2f}%)")
-
-            if top_confidence < NON_SKIN_THRESHOLD:
-                return {
-                    "error": "No face detected. Please upload a clear facial skin image."
-                }
 
         return results
 
@@ -249,9 +219,8 @@ async def analyze_skin(image: UploadFile = File(...)):
         return {"error": str(e)}
 
 # ============================================
-# RUN SERVER
+# RUN SERVER (local dev only)
 # ============================================
 if __name__ == "__main__":
-    import uvicorn
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
