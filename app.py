@@ -44,7 +44,7 @@ def download_model():
     if not os.path.exists(model_path):
         print("⬇️ Downloading model from Google Drive...")
         file_id = "YOUR_GOOGLE_DRIVE_FILE_ID"   # 👈 replace this
-        gdown.download(f"https://drive.google.com/drive/folders/1YXrFzrB_ZRM2O1MWNxeOmlZs0ePpxujQ", model_path, quiet=False)
+        gdown.download(f"https://drive.google.com/drive/folders/1YXrFzrB_ZRM2O1MWNxeOmlZs0ePpxujQ?usp=sharing", model_path, quiet=False)
         print("✅ Model downloaded!")
     else:
         print("✅ Model file already exists, skipping download")
