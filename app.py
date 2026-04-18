@@ -39,7 +39,7 @@ def download_model():
         print("⬇️ Downloading model from Google Drive...")
         file_id = "YOUR_GOOGLE_DRIVE_FILE_ID"  # 👈 replace this
         gdown.download(
-            f"https://drive.google.com/drive/folders/1YXrFzrB_ZRM2O1MWNxeOmlZs0ePpxujQ?usp=sharing}",
+            f"https://drive.google.com/drive/folders/1YXrFzrB_ZRM2O1MWNxeOmlZs0ePpxujQ?usp=sharing",
             model_path,
             quiet=False,
             fuzzy=True
