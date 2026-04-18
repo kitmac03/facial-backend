@@ -11,9 +11,8 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
-
+import tf_keras as keras
+from tf_keras.applications.mobilenet_v2 import preprocess_input
 warnings.filterwarnings('ignore')
 
 app = FastAPI()
@@ -33,7 +32,6 @@ def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
     num_classes = tf.cast(tf.shape(y_true)[-1], tf.float32)
     y_true_smooth = y_true * (1 - smoothing) + (smoothing / num_classes)
     return keras.losses.categorical_crossentropy(y_true_smooth, y_pred)
-
 # ============================================
 # DOWNLOAD MODEL FROM GOOGLE DRIVE
 # ============================================
