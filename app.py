@@ -1,4 +1,5 @@
 import os
+os.environ["KERAS_BACKEND"] = "tensorflow"
 
 import gdown
 import io
@@ -12,8 +13,9 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 import tensorflow as tf
-import tf_keras as keras
-from tf_keras.applications.mobilenet_v2 import preprocess_input
+import keras
+from keras.applications.mobilenet_v2 import preprocess_input
+
 warnings.filterwarnings('ignore')
 
 app = FastAPI()
@@ -27,14 +29,7 @@ app.add_middleware(
 )
 
 # ============================================
-# CUSTOM LOSS FUNCTION
-# ============================================
-def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
-    num_classes = tf.cast(tf.shape(y_true)[-1], tf.float32)
-    y_true_smooth = y_true * (1 - smoothing) + (smoothing / num_classes)
-    return keras.losses.categorical_crossentropy(y_true_smooth, y_pred)
-# ============================================
-# DOWNLOAD MODEL FROM GOOGLE DRIVE
+# DOWNLOAD MODEL
 # ============================================
 def download_model():
     os.makedirs('models', exist_ok=True)
@@ -42,20 +37,33 @@ def download_model():
 
     if not os.path.exists(model_path):
         print("⬇️ Downloading model from Google Drive...")
-        file_id = "YOUR_GOOGLE_DRIVE_FILE_ID"   # 👈 replace this
-        gdown.download(f"https://drive.google.com/drive/folders/1YXrFzrB_ZRM2O1MWNxeOmlZs0ePpxujQ?usp=sharing", model_path, quiet=False)
-        print("✅ Model downloaded!")
+        file_id = "YOUR_GOOGLE_DRIVE_FILE_ID"  # 👈 replace this
+        gdown.download(
+            f"https://drive.google.com/uc?id={file_id}",
+            model_path,
+            quiet=False,
+            fuzzy=True
+        )
+        size = os.path.getsize(model_path)
+        print(f"✅ Downloaded! Size: {size / 1024 / 1024:.1f} MB")
     else:
-        print("✅ Model file already exists, skipping download")
+        print("✅ Model already exists")
 
-download_model()  # 👈 runs before model is loaded
-# ============================================
-# LOAD MODELS
-# ============================================
-print("Loading models...")
+download_model()
 
+# ============================================
+# CUSTOM LOSS FUNCTION
+# ============================================
+def label_smoothing_loss(y_true, y_pred, smoothing=0.1):
+    num_classes = tf.cast(tf.shape(y_true)[-1], tf.float32)
+    y_true_smooth = y_true * (1 - smoothing) + (smoothing / num_classes)
+    return keras.losses.categorical_crossentropy(y_true_smooth, y_pred)
+
+# ============================================
+# LOAD MODEL
+# ============================================
+print("Loading model...")
 model_mobilenet = None
-model_hybrid = None
 
 try:
     model_mobilenet = keras.models.load_model(
